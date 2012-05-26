@@ -313,11 +313,11 @@ public class PodamMockerUnitTest {
 
 	}
 
-	@Test(expected = PodamMockeryException.class)
+	@Test//(expected = PodamMockeryException.class)
 	public void testPojoWithSelfReferenceInConstructorButNoDefaultConstructor() {
-
-		factory.manufacturePojo(ConstructorWithSelfReferencesButNoDefaultConstructorPojo.class);
-
+    ConstructorWithSelfReferencesButNoDefaultConstructorPojo result = 
+      factory.manufacturePojo(ConstructorWithSelfReferencesButNoDefaultConstructorPojo.class);
+    Assert.assertNotNull(result);
 	}
 
 	@Test
@@ -1307,6 +1307,47 @@ public class PodamMockerUnitTest {
 				bigDecimalPojo);
 
 	}
+  
+  @Test
+  public void testPodam() {
+    Person manual = new Person("Luke", "Nezda", new Person("Christine", "Nezda", null));
+    System.err.println(manual);
+    PodamFactory factory = new PodamFactoryImpl(); //This will use the default Random Data Provider Strategy
+    Person myPojo = factory.manufacturePojo(Person.class);
+    System.err.println("myPojo: " + myPojo);
+  }
+  
+  // must be public to work with podam
+  public static class Person {
+    private final String fname;
+    private final String lname;
+    private final Person relatedPerson;
+//    private static final Person NULL_PERSON = new Person("-", "-");
+
+    public Person(String fname, String lname, Person relatedAddress) {
+      this.fname = fname;
+      this.lname = lname;
+      this.relatedPerson = relatedAddress;
+    }
+
+    public Person(String fname, String lname) {
+//      this(fname, lname, NULL_PERSON);
+      this(fname, lname, null);
+    }
+
+    public String getFname() {
+      return fname;
+    }
+
+    public String getLname() {
+      return lname;
+    }
+
+    @Override
+    public String toString() {
+      return "Person{" + "fname=" + fname + ", lname=" + lname + ((relatedPerson != null) ? (", relatedPerson=" + relatedPerson) : "") + '}';
+    }
+  }
 
 	// -----------------------------> Private methods
 
@@ -1405,5 +1446,4 @@ public class PodamMockerUnitTest {
 		Assert.assertNotNull("The map element must not be null!",
 				oneDimensionalTestPojo);
 	}
-
 }

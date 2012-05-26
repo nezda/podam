@@ -326,7 +326,7 @@ public class PodamFactoryImpl implements PodamFactory {
 				try {
 
 					Object[] constructorArgs = getParameterValuesForConstructor(
-							constructor, pojoClass);
+							constructor, pojoClass, 0);
 
 					retValue = constructor.newInstance(constructorArgs);
 
@@ -1130,7 +1130,7 @@ public class PodamFactoryImpl implements PodamFactory {
 				}
 
 				Object[] parameterValues = getParameterValuesForConstructor(
-						constructor, pojoClass);
+						constructor, pojoClass, depth);
 
 				// Being a generic method we cannot be sure on the identify of
 				// T, therefore the mismatch between the newInstance() return
@@ -1348,7 +1348,7 @@ public class PodamFactoryImpl implements PodamFactory {
 						LOG.warn("No public constructors were found. "
 								+ "We'll look for a default, non-public constructor. ");
 						defaultConstructor = pojoClass
-								.getDeclaredConstructor(new Class[] {});
+								.getDeclaredConstructor(new Class<?>[] {});
 						LOG.info("Will use: " + defaultConstructor);
 
 						defaultConstructor.setAccessible(true);
@@ -1360,7 +1360,7 @@ public class PodamFactoryImpl implements PodamFactory {
 
 						// It uses the first public constructor found
 						Object[] parameterValuesForConstructor = getParameterValuesForConstructor(
-								constructors[0], pojoClass);
+								constructors[0], pojoClass, 0);
 						constructors[0].setAccessible(true);
 						retValue = (T) constructors[0]
 								.newInstance(parameterValuesForConstructor);
@@ -1390,7 +1390,7 @@ public class PodamFactoryImpl implements PodamFactory {
 
 					// It uses the first public constructor found
 					Object[] parameterValuesForConstructor = getParameterValuesForConstructor(
-							constructors[0], pojoClass);
+							constructors[0], pojoClass, 0);
 					constructors[0].setAccessible(true);
 					retValue = (T) constructors[0]
 							.newInstance(parameterValuesForConstructor);
@@ -2470,7 +2470,7 @@ public class PodamFactoryImpl implements PodamFactory {
 	 *             If it was not possible to create a class from a string
 	 */
 	private Object[] getParameterValuesForConstructor(
-			Constructor<?> constructor, Class<?> pojoClass)
+			Constructor<?> constructor, Class<?> pojoClass, int depth)
 			throws IllegalArgumentException, InstantiationException,
 			IllegalAccessException, InvocationTargetException,
 			ClassNotFoundException {
@@ -2495,8 +2495,8 @@ public class PodamFactoryImpl implements PodamFactory {
 				// to avoid infinite looping
 
 				Class<?> declaringClass = constructor.getDeclaringClass();
-				Constructor<?> noArgConstructor = null;
-        boolean useNull = false;
+        Constructor<?> noArgConstructor = null;
+        Object recursivelyConstructedParameter = null;
 				try {
 					noArgConstructor = declaringClass
 							.getConstructor(new Class<?>[] {});
@@ -2506,12 +2506,16 @@ public class PodamFactoryImpl implements PodamFactory {
 							+ " a constructor with its own type as argument does not have a no-arg constructor. Impossible to create an instance of this argument.";
 					LOG.error(errorMsg);
 //					throw new IllegalArgumentException(errorMsg);
-          useNull = true;
+          // allow recursing PodamConstants.MAX_DEPTH times before terminating with null
+          if (depth < PodamConstants.MAX_DEPTH) {
+            recursivelyConstructedParameter = manufacturePojoInternal(parameterType, depth + 1);
+          } else {
+            recursivelyConstructedParameter = null;
+          }
 				}
 
-				parameterValues[idx] = !useNull ? noArgConstructor
-						.newInstance(new Object[] {}) : null;
-
+        parameterValues[idx] = noArgConstructor != null ? noArgConstructor
+            .newInstance(new Object[] {}) : recursivelyConstructedParameter;
 			} else {
 
 				String attributeName = null;
@@ -2625,9 +2629,4 @@ public class PodamFactoryImpl implements PodamFactory {
 		return retValue;
 
 	}
-
-	// ------------------->> equals() / hashcode() / toString()
-
-	// ------------------->> Inner classes
-
 }
