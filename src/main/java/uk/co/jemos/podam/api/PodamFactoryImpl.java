@@ -1,6 +1,3 @@
-/**
- * 
- */
 package uk.co.jemos.podam.api;
 
 import java.lang.annotation.Annotation;
@@ -169,7 +166,7 @@ public class PodamFactoryImpl implements PodamFactory {
 			// Class type
 
 			// The parameters to pass to the method invocation
-			Object[] parameterValues = null;
+			Object[] parameterValues;
 
 			for (Method candidateConstructor : declaredMethods) {
 
@@ -1209,8 +1206,8 @@ public class PodamFactoryImpl implements PodamFactory {
 
 		} else {
 
-			int startIdx = typeStr.indexOf("<") + 1;
-			int endIdx = typeStr.indexOf(">");
+			int startIdx = typeStr.indexOf('<') + 1;
+			int endIdx = typeStr.indexOf('>');
 
 			String classType = typeStr.substring(startIdx, endIdx);
 
@@ -1252,8 +1249,8 @@ public class PodamFactoryImpl implements PodamFactory {
 
 		} else {
 
-			int startIdx = typeStr.indexOf("<") + 1;
-			int endIdx = typeStr.indexOf(">");
+			int startIdx = typeStr.indexOf('<') + 1;
+			int endIdx = typeStr.indexOf('>');
 
 			String classType = typeStr.substring(startIdx, endIdx);
 
@@ -1324,10 +1321,10 @@ public class PodamFactoryImpl implements PodamFactory {
 			// class does not have a no-arg constructor we search for a suitable
 			// constructor.
 
-			Constructor<T> defaultConstructor = null;
+			Constructor<T> defaultConstructor;
 			try {
 
-				defaultConstructor = pojoClass.getConstructor(new Class[] {});
+				defaultConstructor = pojoClass.getConstructor(new Class<?>[] {});
 
 				retValue = defaultConstructor.newInstance();
 
@@ -1401,12 +1398,12 @@ public class PodamFactoryImpl implements PodamFactory {
 				}
 			}
 
-			Class<?>[] parameterTypes = null;
-			Class<?> attributeType = null;
+			Class<?>[] parameterTypes;
+			Class<?> attributeType;
 
 			// According to JavaBeans standards, setters should have only
 			// one argument
-			Object setterArg = null;
+			Object setterArg;
 			for (Method setter : classInfo.getClassSetters()) {
 
 				List<Annotation> pojoAttributeAnnotations = retrieveFieldAnnotations(
@@ -1851,7 +1848,7 @@ public class PodamFactoryImpl implements PodamFactory {
 				retValue = resolveCollectionType(collectionType);
 			}
 
-			Class<?> typeClass = null;
+			Class<?> typeClass;
 
 			Type genericType = field.getGenericType();
 			if (!(genericType instanceof ParameterizedType)) {
@@ -2019,9 +2016,9 @@ public class PodamFactoryImpl implements PodamFactory {
 		// Checks whether the user initialised the collection in the class
 		// definition
 
-		Class workClass = pojoClass;
+		Class<?> workClass = pojoClass;
 
-		Object newInstance = null;
+		Object newInstance;
 
 		Field field = null;
 
@@ -2062,9 +2059,9 @@ public class PodamFactoryImpl implements PodamFactory {
 
 			Type genericType = field.getGenericType();
 
-			Class<?> keyClass = null;
+			Class<?> keyClass;
 
-			Class<?> elementClass = null;
+			Class<?> elementClass;
 
 			if (null != genericType && genericType instanceof ParameterizedType) {
 
@@ -2185,9 +2182,9 @@ public class PodamFactoryImpl implements PodamFactory {
 
 		for (int i = 0; i < nbrElements; i++) {
 
-			Object keyValue = null;
+			final Object keyValue;
 
-			Object elementValue = null;
+			final Object elementValue;
 
 			keyValue = getMapKeyOrElementValue(pojoClass, attributeName,
 					annotations, keyClass, collectionAnnotation, keyStrategy);
@@ -2240,7 +2237,7 @@ public class PodamFactoryImpl implements PodamFactory {
 			throws InstantiationException, IllegalAccessException,
 			InvocationTargetException, ClassNotFoundException {
 
-		Object retValue = null;
+		Object retValue;
 
 		if (null != elementStrategy
 				&& ObjectStrategy.class.isAssignableFrom(elementStrategy
@@ -2296,7 +2293,7 @@ public class PodamFactoryImpl implements PodamFactory {
 
 		int nbrElements = PodamConstants.ANNOTATION_COLLECTION_DEFAULT_NBR_ELEMENTS;
 
-		Object arrayElement = null;
+		Object arrayElement;
 
 		// If the user defined a strategy to fill the collection elements,
 		// we use it
@@ -2415,7 +2412,7 @@ public class PodamFactoryImpl implements PodamFactory {
 	private Map<? super Object, ? super Object> resolveMapType(
 			Class<?> attributeType) {
 
-		Map<? super Object, ? super Object> retValue = null;
+		Map<? super Object, ? super Object> retValue;
 
 		if (SortedMap.class.isAssignableFrom(attributeType)) {
 
@@ -2499,6 +2496,7 @@ public class PodamFactoryImpl implements PodamFactory {
 
 				Class<?> declaringClass = constructor.getDeclaringClass();
 				Constructor<?> noArgConstructor = null;
+        boolean useNull = false;
 				try {
 					noArgConstructor = declaringClass
 							.getConstructor(new Class<?>[] {});
@@ -2507,11 +2505,12 @@ public class PodamFactoryImpl implements PodamFactory {
 							+ declaringClass
 							+ " a constructor with its own type as argument does not have a no-arg constructor. Impossible to create an instance of this argument.";
 					LOG.error(errorMsg);
-					throw new IllegalArgumentException(errorMsg);
+//					throw new IllegalArgumentException(errorMsg);
+          useNull = true;
 				}
 
-				parameterValues[idx] = noArgConstructor
-						.newInstance(new Object[] {});
+				parameterValues[idx] = !useNull ? noArgConstructor
+						.newInstance(new Object[] {}) : null;
 
 			} else {
 
@@ -2594,10 +2593,9 @@ public class PodamFactoryImpl implements PodamFactory {
 
 		Object retValue = null;
 
-		Method attributeStrategyMethod = null;
 
 		try {
-			attributeStrategyMethod = attributeStrategy.getClass().getMethod(
+      Method attributeStrategyMethod = attributeStrategy.getClass().getMethod(
 					PodamConstants.PODAM_ATTRIBUTE_STRATEGY_METHOD_NAME,
 					new Class<?>[] {});
 
